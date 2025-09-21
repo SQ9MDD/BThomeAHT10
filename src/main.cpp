@@ -147,13 +147,13 @@ void setup() {
 // ----- przygotowanie i wysłanie reklam BTHome -----
   uint8_t advertisementData[MAX_ADVERTISEMENT_SIZE];                        // bufor na dane reklamowe
   uint8_t size = 0;                                                         // rozmiar danych reklamowych
-  BtHomeV2Device device("BT3", "BT3", false);                               // utwórz obiekt urządzenia BTHome
+  BtHomeV2Device device("AHT10", "AHT10", false);                               // utwórz obiekt urządzenia BTHome
   //device.addTemperature_neg327_to_327_Resolution_0_01(dsTempC);             // device.addTemperature_neg44_to_44_Resolution_0_35(dsTempC);  // alternatywnie mniejszy zakres i gorsza rozdzielczość
   //device.addVoltage_0_to_65_resolution_0_001(vbat_mV / 1000.0f);            // dodaj pomiar napięcia VBAT
   //device.addBatteryPercentage(estimate_battery_percent(vbat_mV/1000.0f));   // dodaj szacunkowy poziom naładowania baterii
   device.addCount_0_4294967295(bootcount);                                  // dodaj licznik restartów
   size = device.getAdvertisementData(advertisementData);                    // pobierz dane reklamowe do bufora
-  sendBeacon(advertisementData, size, 3);                                   // nadaj reklamy X razy
+  sendBeacon(advertisementData, size, 5);                                   // nadaj reklamy X razy
 // ----- przejście w tryb głębokiego uśpienia -----
   esp_sleep_enable_timer_wakeup(1000000LL * GPIO_DEEP_SLEEP_DURATION);      // enable timer wakeup
   esp_deep_sleep_start();                                                   // enter deep sleep
