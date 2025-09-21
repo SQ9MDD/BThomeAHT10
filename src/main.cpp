@@ -1,5 +1,5 @@
 /*
-  ESP32 C3 DS18B20 BTHome Sensor
+  ESP32 C3 AHT10 BTHome Sensor
   (c) 2025 Rysiek Labus - https://sq9mdd.qrz.pl
 */
 #include <WiFi.h>                   // biblioteka do obsługi Wi-Fi w ESP32
@@ -29,8 +29,8 @@
 // wprowadź te wartości do poniższych stałych i wgraj program do ESP32
 // sprawdź czy teraz przesyłane wartości są prawidłowe
 // jeśli nie, powtórz procedurę
-static constexpr float CAL_K   = 0.87719298f;   // współczynnik kalibracji default 01.00f
-static constexpr float CAL_BmV = 208.77f;       // offset kalibracji w mV 0.0f
+static constexpr float CAL_K   = 1.00f;      // współczynnik kalibracji default 01.00f
+static constexpr float CAL_BmV = 0.0f;       // offset kalibracji w mV 0.0f
 
 RTC_DATA_ATTR static uint32_t bootcount;  // persists bootcount across deep sleep cycles using RTC memory
 
@@ -147,7 +147,9 @@ void setup() {
 // ----- przygotowanie i wysłanie reklam BTHome -----
   uint8_t advertisementData[MAX_ADVERTISEMENT_SIZE];                        // bufor na dane reklamowe
   uint8_t size = 0;                                                         // rozmiar danych reklamowych
-  BtHomeV2Device device("AHT10", "AHT10", false);                               // utwórz obiekt urządzenia BTHome
+  BtHomeV2Device device("AHT10", "AHT10", false);                           // utwórz obiekt urządzenia BTHome
+  //device.addFirmwareVersion3(1,0,0);                                        // dodaj wersję oprogramowania NOT IMPLEMENTED IN HOME ASSISTANT
+  device.addDeviceTypeId(0x01);                                            // typ urządzenia: 0
   //device.addTemperature_neg327_to_327_Resolution_0_01(dsTempC);             // device.addTemperature_neg44_to_44_Resolution_0_35(dsTempC);  // alternatywnie mniejszy zakres i gorsza rozdzielczość
   //device.addVoltage_0_to_65_resolution_0_001(vbat_mV / 1000.0f);            // dodaj pomiar napięcia VBAT
   //device.addBatteryPercentage(estimate_battery_percent(vbat_mV/1000.0f));   // dodaj szacunkowy poziom naładowania baterii
