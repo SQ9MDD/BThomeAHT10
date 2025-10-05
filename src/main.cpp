@@ -8,15 +8,17 @@
 #include "NimBLEDevice.h"           // biblioteka NimBLE-Arduino  
 #include <BtHomeV2Device.h>         // biblioteka BtHomeV2Device
 #include "esp_sleep.h"              // biblioteka do obsługi trybów uśpienia ESP32
+#include <Adafruit_AHTX0.h>
+#include <Wire.h>                   // biblioteka do obsługi I2C
 
 #define LED_PIN 8                   // ESP32C3-DevKitM-1: GPIO8 (LED wbudowana)
 #define VBAT_ADC_PIN 0              // GPIO0 (ADC1_0)
 #define VBAT_GATE_PIN  1            // GPIO1 (wirtualna masa)
 #define R1 220000.0f                // rezystor R1 dzielnika do VBAT
 #define R2 100000.0f                // rezystor R2 dzielnika do "masy" (GPIO1)
-#define GPIO_DEEP_SLEEP_DURATION 5 // sleep x seconds and then wake up
+#define GPIO_DEEP_SLEEP_DURATION 30 // sleep x seconds and then wake up
 #define TX_DBM 9                    // transmit power in dBm (ESP32-C3: -12, -9, -6, -3, 0, 3, 6, 9 dBm)
-
+#define i2c_power 5                   // GPIO5 - zasilanie 
 // Procedura kalibracji pomiaru napięcia VBAT
 // wymaga zasilacza laboratoryjnego i miernika cyfrowego:
 // ustaw CAL_K = 1.0 i CAL_BmV = 0.0
@@ -29,14 +31,14 @@
 // wprowadź te wartości do poniższych stałych i wgraj program do ESP32
 // sprawdź czy teraz przesyłane wartości są prawidłowe
 // jeśli nie, powtórz procedurę
-static constexpr float CAL_K   = 1.00f;      // współczynnik kalibracji default 01.00f
-static constexpr float CAL_BmV = 0.0f;       // offset kalibracji w mV 0.0f
+static constexpr float CAL_K   = 1.00f;       // współczynnik kalibracji default 01.00f
+static constexpr float CAL_BmV = 0.0f;        // offset kalibracji w mV 0.0f
 
-RTC_DATA_ATTR static uint32_t bootcount;  // persists bootcount across deep sleep cycles using RTC memory
+RTC_DATA_ATTR static uint32_t bootcount;      // persists bootcount across deep sleep cycles using RTC memory
 
-//NimBLEAdvertising *pAdvertising;          // global NimBLE advertising object
+Adafruit_AHTX0 sht;                           // obiekt czujnika AHT10  
 
-void init_vbat_adc() { // Jednorazowa inicjalizacja (np. w setup())
+void init_vbat_adc() {                        // Jednorazowa inicjalizacja (np. w setup())
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db); // ~0..3.3 V
 }
@@ -137,22 +139,24 @@ void setup() {
   WiFi.mode(WIFI_OFF);                                                      // wyłącz Wi-Fi
   esp_wifi_stop();                                                          // zatrzymaj sterownik Wi-Fi
   esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);                    // nie używamy klasycznego BT
-  // ----- odczyt temperatury z DS18B20 -----
-  bootcount++;                                                              // increment bootcount
-  pinMode(LED_PIN, OUTPUT);                                                 // ustaw pin LED jako wyjście     
-  digitalWrite(LED_PIN, LOW);                                               // LED on
-// ----- odczyt VBAT -----
-  uint16_t vbat_mV = read_vbat_mV_calibrated();                             // odczyt VBAT w mV
-  digitalWrite(LED_PIN, HIGH);                                              // LED off
+  bootcount++;                                                              // increment bootcount                                             // LED on
+  uint16_t vbat_mV = read_vbat_mV_calibrated();                             // odczyt VBAT w mV  
+  pinMode(i2c_power, OUTPUT);                                               // GPIO5 jako wyjście
+  digitalWrite(i2c_power, HIGH);                                            // zasil I2C
+  Wire.begin();                                                             // inicjalizacja I2C
+  sht.begin();                                                              // inicjalizacja AHT10
+  sensors_event_t hum, temp;                                                // struktury do odczytu danych z AHT10
+  sht.getEvent(&hum, &temp);                                                // odczyt danych z AHT10
+  float sensor_temperature = temp.temperature;                              // odczyt temperatury
+  float sensor_humidity = hum.relative_humidity;                            // odczyt wilgotności
 // ----- przygotowanie i wysłanie reklam BTHome -----
   uint8_t advertisementData[MAX_ADVERTISEMENT_SIZE];                        // bufor na dane reklamowe
   uint8_t size = 0;                                                         // rozmiar danych reklamowych
   BtHomeV2Device device("AHT10", "AHT10", false);                           // utwórz obiekt urządzenia BTHome
-  //device.addFirmwareVersion3(1,0,0);                                        // dodaj wersję oprogramowania NOT IMPLEMENTED IN HOME ASSISTANT
-  device.addDeviceTypeId(0x01);                                            // typ urządzenia: 0
-  //device.addTemperature_neg327_to_327_Resolution_0_01(dsTempC);             // device.addTemperature_neg44_to_44_Resolution_0_35(dsTempC);  // alternatywnie mniejszy zakres i gorsza rozdzielczość
-  //device.addVoltage_0_to_65_resolution_0_001(vbat_mV / 1000.0f);            // dodaj pomiar napięcia VBAT
-  //device.addBatteryPercentage(estimate_battery_percent(vbat_mV/1000.0f));   // dodaj szacunkowy poziom naładowania baterii
+  device.addTemperature_neg327_to_327_Resolution_0_01(sensor_temperature);
+  device.addHumidityPercent_Resolution_1(sensor_humidity);
+  device.addVoltage_0_to_65_resolution_0_001(vbat_mV / 1000.0f);            // dodaj pomiar napięcia VBAT
+  device.addBatteryPercentage(estimate_battery_percent(vbat_mV/1000.0f));   // dodaj szacunkowy poziom naładowania baterii
   device.addCount_0_4294967295(bootcount);                                  // dodaj licznik restartów
   size = device.getAdvertisementData(advertisementData);                    // pobierz dane reklamowe do bufora
   sendBeacon(advertisementData, size, 5);                                   // nadaj reklamy X razy
