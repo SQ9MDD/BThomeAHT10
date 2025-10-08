@@ -16,7 +16,7 @@
 #define VBAT_GATE_PIN  1            // GPIO1 (wirtualna masa)
 #define R1 220000.0f                // rezystor R1 dzielnika do VBAT
 #define R2 100000.0f                // rezystor R2 dzielnika do "masy" (GPIO1)
-#define GPIO_DEEP_SLEEP_DURATION 30 // sleep x seconds and then wake up
+#define GPIO_DEEP_SLEEP_DURATION 5 // sleep x seconds and then wake up
 #define TX_DBM 9                    // transmit power in dBm (ESP32-C3: -12, -9, -6, -3, 0, 3, 6, 9 dBm)
 #define i2c_power 5                   // GPIO5 - zasilanie 
 // Procedura kalibracji pomiaru napięcia VBAT
@@ -31,7 +31,7 @@
 // wprowadź te wartości do poniższych stałych i wgraj program do ESP32
 // sprawdź czy teraz przesyłane wartości są prawidłowe
 // jeśli nie, powtórz procedurę
-static constexpr float CAL_K   = 1.00f;       // współczynnik kalibracji default 01.00f
+static constexpr float CAL_K   = 1.0f;       // współczynnik kalibracji default 01.00f
 static constexpr float CAL_BmV = 0.0f;        // offset kalibracji w mV 0.0f
 
 RTC_DATA_ATTR static uint32_t bootcount;      // persists bootcount across deep sleep cycles using RTC memory
