@@ -11,12 +11,11 @@
 #include <Adafruit_AHTX0.h>
 #include <Wire.h>                   // biblioteka do obsługi I2C
 
-#define LED_PIN 8                   // ESP32C3-DevKitM-1: GPIO8 (LED wbudowana)
 #define VBAT_ADC_PIN 0              // GPIO0 (ADC1_0)
 #define VBAT_GATE_PIN  1            // GPIO1 (wirtualna masa)
 #define R1 220000.0f                // rezystor R1 dzielnika do VBAT
 #define R2 100000.0f                // rezystor R2 dzielnika do "masy" (GPIO1)
-#define GPIO_DEEP_SLEEP_DURATION 5 // sleep x seconds and then wake up
+#define GPIO_DEEP_SLEEP_DURATION 30 // sleep x seconds and then wake up
 #define TX_DBM 9                    // transmit power in dBm (ESP32-C3: -12, -9, -6, -3, 0, 3, 6, 9 dBm)
 #define i2c_power 5                   // GPIO5 - zasilanie 
 // Procedura kalibracji pomiaru napięcia VBAT
@@ -131,20 +130,15 @@ void sendBeacon(uint8_t advertisementData[], size_t size, uint8_t repeats){     
 }
 
 void setup() {
-  /*
-    Prawidłowa kolejność zapewnia zmniejszenie poboru energii.
-  */
-  //setCpuFrequencyMhz(80);
-  WiFi.persistent(false);                                                   // żadnych auto-zapisów
-  WiFi.mode(WIFI_OFF);                                                      // wyłącz Wi-Fi
-  esp_wifi_stop();                                                          // zatrzymaj sterownik Wi-Fi
-  esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT);                    // nie używamy klasycznego BT
   bootcount++;                                                              // increment bootcount                                             // LED on
   uint16_t vbat_mV = read_vbat_mV_calibrated();                             // odczyt VBAT w mV  
   pinMode(i2c_power, OUTPUT);                                               // GPIO5 jako wyjście
   digitalWrite(i2c_power, HIGH);                                            // zasil I2C
   Wire.begin();                                                             // inicjalizacja I2C
+  delay(10);                                                                // krótka chwila na ustabilizowanie zasilania
   sht.begin();                                                              // inicjalizacja AHT10
+  delay(10);                                                                // krótka chwila na ustabilizowanie zasilania
+// ----- odczyt danych z AHT10 -----
   sensors_event_t hum, temp;                                                // struktury do odczytu danych z AHT10
   sht.getEvent(&hum, &temp);                                                // odczyt danych z AHT10
   float sensor_temperature = temp.temperature;                              // odczyt temperatury
