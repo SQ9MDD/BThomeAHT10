@@ -3,7 +3,7 @@
 # Punkty odniesienia domyślnie: 4.2 V (4200 mV) i 3.6 V (3600 mV) – można zmienić w promptach.
 
 DEFAULT_V1_mV = 4200.0
-DEFAULT_V2_mV = 3600.0
+DEFAULT_V2_mV = 3200.0
 
 def _parse_number(s: str) -> float:
     """Akceptuje kropkę/przecinek. Zwraca float."""
